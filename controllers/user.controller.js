@@ -1,4 +1,6 @@
 const bcrypt = require("bcrypt");
+
+const { generateAccessToken } = require("../utils/generateToken");
 const db = require("../models");
 const { User } = db;
 
@@ -52,6 +54,14 @@ const userLogin = async (req, res) => {
         const isValidPassword = await bcrypt.compareSync(password, user.password);
 
         if (!isValidPassword) return res.send("Email or Password Error");
+
+        const accessToken = await generateAccessToken({ email: user.email });
+
+        res.cookie("accessToken", accessToken, {
+            secure: true,
+            httpOnly: true,
+            expires: new Date(Date.now() + 300000),
+        });
 
         res.send({ message: "Logged In", userEmail: user.email, userName: user.name });
     } catch (error) {
