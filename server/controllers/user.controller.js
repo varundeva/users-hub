@@ -1,21 +1,10 @@
 const bcrypt = require("bcrypt");
 
-const { generateAccessToken } = require("../utils/generateToken");
+const { generateAccessToken, generateRefreshToken } = require("../utils/generateToken");
+const { hashPassword } = require("../utils/hashPassword");
+
 const db = require("../models");
 const { User } = db;
-
-const hashPassword = async (password, saltRounds = 10) => {
-    try {
-        // Generate a salt
-        const salt = await bcrypt.genSalt(saltRounds);
-        // Hash password
-        return await bcrypt.hashSync(password, salt);
-    } catch (error) {
-        console.log(error);
-    }
-    // Return null if error
-    return null;
-};
 
 const userRegister = async (req, res) => {
     try {
@@ -56,13 +45,18 @@ const userLogin = async (req, res) => {
         if (!isValidPassword) return res.send("Email or Password Error");
 
         const accessToken = await generateAccessToken({ email: user.email });
+        const refreshToken = await generateRefreshToken({ email: user.email });
 
         res.cookie("accessToken", accessToken, {
             secure: true,
             httpOnly: true,
             expires: new Date(Date.now() + 300000),
         });
-
+        res.cookie("refreshToken", refreshToken, {
+            secure: true,
+            httpOnly: true,
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
         res.send({ message: "Logged In", userEmail: user.email, userName: user.name });
     } catch (error) {
         console.error(error.message);
